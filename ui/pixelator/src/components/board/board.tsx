@@ -7,18 +7,19 @@ export default function Board() {
     const [isGameOver, setGameOver] = useState<boolean>(false);
     const [player, setPlayer] = useState<string>("X");
     const [winningPlayer, setWinningPlayer] = useState<string | null>(null);
+    const [isStalemate, setStalemate] = useState<boolean>(false);
 
     function toIndex(row: number, column: number) {
         return row * 3 + column;
     }
 
-    function getWinningCells() {
+    function getWinningCells(): number[] | null {
         const wins: string[] = ['012', '345', '678', '036', '147', '258', '048', '246']
         for (const cells of wins) {
-            const indexes: number[] = cells.split('').map(Number)
-            const line: string = indexes.map(index => boardInfo[index]).join('')
+            const indices: number[] = cells.split('').map(Number)
+            const line: string = indices.map(index => boardInfo[index]).join('')
             if (line === 'XXX' || line === 'OOO') {
-                return indexes
+                return indices;
             }
         }
         return null
@@ -36,13 +37,14 @@ export default function Board() {
         return boardInfo.filter(cell => !!cell).length === 9;
     }
 
-    function getGameOver() {
+    function getGameOver(): boolean {
         const winningCells: number[] | null = getWinningCells();
-        const boardFull = isBoardFull();
-
-        console.log("Winning cells: " + winningCells + " board full: " + boardFull);
-        
-        return !!winningCells || boardFull;
+        const boardFull: boolean = isBoardFull();
+        const winner: string | null = getWinningPlayer();
+        const ticTacToeObtained: boolean = !!winningCells && winner !== null;
+        const stalemate: boolean = boardFull && winner === null;
+        setStalemate(stalemate);
+        return !stalemate && ticTacToeObtained || boardFull;
     }
 
     function playMove(index: number) {
@@ -65,6 +67,7 @@ export default function Board() {
         setGameOver(false);
         setPlayer("X");
         setWinningPlayer(null);
+        setStalemate(false);
     }
 
     for (let row: number = 0; row < 3; row++) {
@@ -82,7 +85,8 @@ export default function Board() {
 
     return (
         <>
-            <div>{isGameOver ? 'Game over! ' + winningPlayer + ' won!' : ''}</div>
+            <div>{isGameOver && !isStalemate ? 'Game over! ' + winningPlayer + ' won!' : ''}</div>
+            <div>{isStalemate ? 'Stalemate!' : ''}</div>
             <div className="w-[300px] h-[300px] justify-center flex flex-wrap">
                 {cells}
             </div>
