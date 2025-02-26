@@ -1,23 +1,12 @@
 from aiohttp import web
-from aiohttp.web_ws import WebSocketResponse
 
-
-async def wshandle(request) -> WebSocketResponse:
-    ws: WebSocketResponse = web.WebSocketResponse()
-    await ws.prepare(request)
-
-    async for msg in ws:
-        if msg.type == web.WSMsgType.text:
-            await ws.send_str("Hello, {}".format(msg.data))
-        elif msg.type == web.WSMsgType.binary:
-            await ws.send_bytes(msg.data)
-        elif msg.type == web.WSMsgType.close:
-            break
-    return ws
-
+from pixelator.game_master import GameMaster
+from pixelator.message_handler import MessageHandler
 
 app = web.Application()
-app.add_routes([web.get('/echo', wshandle)])
+game_master = GameMaster()
+handler = MessageHandler(game_master)
+app.add_routes([web.get("/game", handler.handle)])
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     web.run_app(app, host="localhost", port=8080)
