@@ -8,6 +8,7 @@ class Game:
     
     def __init__(self):
         self.session_id = str(uuid4())
+        self.board = {}
         self.log = logging.getLogger(__name__)
 
     def update_board(self, index: int, player: str):

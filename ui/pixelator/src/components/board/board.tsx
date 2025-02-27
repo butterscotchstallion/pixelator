@@ -81,7 +81,7 @@ export default function Board(props) {
                 session_id: props.sessionId
             }
         }));
-        console.log("Sent MOVE message")
+        console.log("Sent MOVE message with sessionId: " + props.sessionId + " and index: " + index + " and player: " + player);
     }
 
     function updateBoardInfo(index: number, player: string) {
@@ -118,7 +118,9 @@ export default function Board(props) {
                 updateBoardInfo(decoded_message.data.index, decoded_message.data.player)
             }
         }
-    })
+
+        console.log("Board loaded with sessionId: " + props.sessionId);
+    });
 
     return (
         <>
