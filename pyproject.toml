@@ -5,6 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+    "aiohttp-devtools>=1.1.2",
     "aiohttp>=3.11.13",
     "black>=25.1.0",
+    "pytest-aiohttp>=1.1.0",
 ]
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+log_cli = true
+log_cli_level = "DEBUG"
+log_cli_format = "[%(levelname)8s] %(message)s"
+log_format = "[%(levelname)8s] %(message)s"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"

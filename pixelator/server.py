@@ -6,7 +6,7 @@ from pixelator.message_handler import MessageHandler
 app = web.Application()
 game_master = GameMaster()
 handler = MessageHandler(game_master)
-app.add_routes([web.get("/game", handler.handle)])
+app.add_routes([web.get("/ws/game", handler.handle)])
 
 if __name__ == "__main__":
     web.run_app(app, host="localhost", port=8080)

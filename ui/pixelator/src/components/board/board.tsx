@@ -1,13 +1,14 @@
 import {useState} from "react";
 import './board.scss';
 
-export default function Board() {
+export default function Board(props) {
     const cells = [];
     const [boardInfo, setBoardInfo] = useState([]);
     const [isGameOver, setGameOver] = useState<boolean>(false);
     const [player, setPlayer] = useState<string>("X");
     const [winningPlayer, setWinningPlayer] = useState<string | null>(null);
     const [isStalemate, setStalemate] = useState<boolean>(false);
+    let gameSessionId: string | null = null;
 
     function toIndex(row: number, column: number) {
         return row * 3 + column;
@@ -47,10 +48,22 @@ export default function Board() {
         return !stalemate && ticTacToeObtained || boardFull;
     }
 
+    function getGameSessionId() {
+        props.sendMessage(JSON.stringify({
+            message_type: "START"
+        }));
+        console.log("Sent start message");
+    }
+
     function playMove(index: number) {
         if (boardInfo[index] || isGameOver) {
             return;
         }
+
+        if (!gameSessionId) {
+            gameSessionId = getGameSessionId();
+        }
+
         boardInfo[index] = player;
         setBoardInfo(boardInfo);
         setPlayer(player === "X" ? "O" : "X");
@@ -85,12 +98,14 @@ export default function Board() {
 
     return (
         <>
-            <div>{isGameOver && !isStalemate ? 'Game over! ' + winningPlayer + ' won!' : ''}</div>
-            <div>{isStalemate ? 'Stalemate!' : ''}</div>
-            <div className="w-[300px] h-[300px] justify-center flex flex-wrap">
-                {cells}
+            <div>
+                <div>{isGameOver && !isStalemate ? 'Game over! ' + winningPlayer + ' won!' : ''}</div>
+                <div>{isStalemate ? 'Stalemate!' : ''}</div>
+                <div className="w-[300px] h-[300px] justify-center flex flex-wrap">
+                    {cells}
+                </div>
+                <button onClick={() => reset()}>Reset</button>
             </div>
-            <button onClick={() => reset()}>Reset</button>
         </>
     )
 }
