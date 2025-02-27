@@ -1,4 +1,4 @@
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import './board.scss';
 
 export default function Board(props) {
@@ -8,7 +8,6 @@ export default function Board(props) {
     const [player, setPlayer] = useState<string>("X");
     const [winningPlayer, setWinningPlayer] = useState<string | null>(null);
     const [isStalemate, setStalemate] = useState<boolean>(false);
-    let gameSessionId: string | null = null;
 
     function toIndex(row: number, column: number) {
         return row * 3 + column;
@@ -52,7 +51,6 @@ export default function Board(props) {
         props.sendMessage(JSON.stringify({
             message_type: "START"
         }));
-        console.log("Sent start message");
     }
 
     function playMove(index: number) {
@@ -60,19 +58,36 @@ export default function Board(props) {
             return;
         }
 
-        if (!gameSessionId) {
-            gameSessionId = getGameSessionId();
+        if (!props.sessionId) {
+            getGameSessionId();
         }
 
-        boardInfo[index] = player;
-        setBoardInfo(boardInfo);
-        setPlayer(player === "X" ? "O" : "X");
+        updateBoardInfo(index, player);
+        sendMove(index, player);
 
         const isGameOverCheck: boolean = getGameOver();
         if (isGameOverCheck) {
             setGameOver(true);
             setWinningPlayer(getWinningPlayer());
         }
+    }
+
+    function sendMove(index: number, player: string) {
+        props.sendMessage(JSON.stringify({
+            message_type: "MOVE",
+            data: {
+                index: index,
+                player: player,
+                session_id: props.sessionId
+            }
+        }));
+        console.log("Sent MOVE message")
+    }
+
+    function updateBoardInfo(index: number, player: string) {
+        boardInfo[index] = player;
+        setBoardInfo(boardInfo);
+        setPlayer(player === "X" ? "O" : "X");
     }
 
     function reset() {
@@ -95,6 +110,15 @@ export default function Board(props) {
             );
         }
     }
+
+    useEffect(() => {
+        if (props.lastMessage) {
+            const decoded_message = JSON.parse(props.lastMessage.data);
+            if (decoded_message?.message_type === "MOVE_SUCCESSFUL") {
+                updateBoardInfo(decoded_message.data.index, decoded_message.data.player)
+            }
+        }
+    })
 
     return (
         <>
