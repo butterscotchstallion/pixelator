@@ -1,15 +1,33 @@
-import {useEffect, useState} from "react";
+import {ReactElement, useCallback, useEffect, useState} from "react";
 import './board.scss';
 
-export default function Board(props) {
-    const cells = [];
-    const [boardInfo, setBoardInfo] = useState([]);
+interface boardProps {
+    sendMessage: (message: string) => void;
+    sessionId: string | null;
+    lastMessage: MessageEvent<any> | null;
+    player: string;
+}
+
+interface BoardInfo {
+    [index: number]: string;
+}
+
+export default function Board(props: boardProps): ReactElement {
+    const [boardInfo, setBoardInfo] = useState<BoardInfo[]>([]);
     const [isGameOver, setGameOver] = useState<boolean>(false);
-    const [player, setPlayer] = useState<string>("X");
     const [winningPlayer, setWinningPlayer] = useState<string | null>(null);
     const [isStalemate, setStalemate] = useState<boolean>(false);
+    const [player, setPlayer] = useState<string>(props.player);
+    const updateBoardInfo = useCallback((index: number, player: string)=> {
+        setBoardInfo(prevBoard => {
+            const newBoard: BoardInfo[] = [...prevBoard];
+            newBoard[index] = player;
+            return newBoard;
+        });
+        console.log("Updated boardInfo with index: " + index + " and player: " + player);
+    }, []);
 
-    function toIndex(row: number, column: number) {
+    function toIndex(row: number, column: number): number {
         return row * 3 + column;
     }
 
@@ -25,15 +43,15 @@ export default function Board(props) {
         return null
     }
 
-    function getWinningPlayer() {
+    function getWinningPlayer(): string | null {
         const winningCells: number[] | null = getWinningCells();
         if (winningCells) {
-            return boardInfo[winningCells[0]]
+            return boardInfo[winningCells[0]] as string;
         }
         return null;
     }
 
-    function isBoardFull() {
+    function isBoardFull(): boolean {
         return boardInfo.filter(cell => !!cell).length === 9;
     }
 
@@ -47,23 +65,13 @@ export default function Board(props) {
         return !stalemate && ticTacToeObtained || boardFull;
     }
 
-    function getGameSessionId() {
-        props.sendMessage(JSON.stringify({
-            message_type: "START"
-        }));
-    }
-
     function playMove(index: number) {
         if (boardInfo[index] || isGameOver) {
             return;
         }
 
-        if (!props.sessionId) {
-            getGameSessionId();
-        }
-
-        updateBoardInfo(index, player);
-        sendMove(index, player);
+        updateBoardInfo(index, props.player);
+        sendMove(index, props.player);
 
         const isGameOverCheck: boolean = getGameOver();
         if (isGameOverCheck) {
@@ -77,27 +85,45 @@ export default function Board(props) {
             message_type: "MOVE",
             data: {
                 index: index,
-                player: player,
+                player: props.player,
                 session_id: props.sessionId
             }
         }));
         console.log("Sent MOVE message with sessionId: " + props.sessionId + " and index: " + index + " and player: " + player);
     }
 
-    function updateBoardInfo(index: number, player: string) {
-        boardInfo[index] = player;
-        setBoardInfo(boardInfo);
-        setPlayer(player === "X" ? "O" : "X");
-    }
-
     function reset() {
         setBoardInfo([]);
         setGameOver(false);
-        setPlayer("X");
         setWinningPlayer(null);
         setStalemate(false);
     }
 
+
+
+    useEffect(() => {
+        if (!props.sessionId) {
+            props.sendMessage(JSON.stringify({
+                message_type: "START"
+            }));
+        }
+
+        setPlayer(props.player);
+
+        if (props.lastMessage) {
+            const decoded_message = JSON.parse(props.lastMessage.data);
+            switch (decoded_message?.message_type) {
+                case "MOVE_SUCCESSFUL":
+                    console.log("Received MOVE_SUCCESSFUL message with sessionId: " + props.sessionId);
+                    //updateBoardInfo(decoded_message.data.index, decoded_message.data.player);
+                    break;
+            }
+        }
+
+        console.log("Board loaded with sessionId: " + props.sessionId);
+    }, [props.sessionId, props.player, props.lastMessage, updateBoardInfo, props]);
+
+    const cells = [];
     for (let row: number = 0; row < 3; row++) {
         for (let cell: number = 0; cell < 3; cell++) {
             cells.push(
@@ -105,22 +131,11 @@ export default function Board(props) {
                     onClick={() => playMove(toIndex(row, cell))}
                     key={row + '-' + cell}
                     className={"flex bg-slate-700 cursor-pointer justify-center items-center text-4xl text-bold border-slate-400 border-1 border-solid w-[100px] h-[100px] " + 'cell-' + boardInfo[toIndex(row, cell)]}>
-                    {boardInfo[toIndex(row, cell)]}
+                    {boardInfo[toIndex(row, cell)] as string}
                 </div>
             );
         }
     }
-
-    useEffect(() => {
-        if (props.lastMessage) {
-            const decoded_message = JSON.parse(props.lastMessage.data);
-            if (decoded_message?.message_type === "MOVE_SUCCESSFUL") {
-                updateBoardInfo(decoded_message.data.index, decoded_message.data.player)
-            }
-        }
-
-        console.log("Board loaded with sessionId: " + props.sessionId);
-    });
 
     return (
         <>
@@ -130,7 +145,10 @@ export default function Board(props) {
                 <div className="w-[300px] h-[300px] justify-center flex flex-wrap">
                     {cells}
                 </div>
-                <button onClick={() => reset()}>Reset</button>
+                <div className="flex justify-between">
+                    <button onClick={() => reset()}>Reset</button>
+                    <div>Playing as <strong>{player}</strong></div>
+                </div>
             </div>
         </>
     )

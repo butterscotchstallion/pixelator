@@ -1,16 +1,17 @@
 import logging
 
-from aiohttp import web
+import asyncio
+from websockets.asyncio.server import serve
 
 from pixelator.game_master import GameMaster
 from pixelator.message_handler import MessageHandler
 
 logging.basicConfig(level=logging.DEBUG)
 
-app = web.Application()
-game_master = GameMaster()
-handler = MessageHandler(game_master)
-app.add_routes([web.get("/ws/game", handler.handle)])
+async def main():
+    handler = MessageHandler(GameMaster())
+    async with serve(handler.handle, "127.0.0.1", 8001) as server:
+        await server.serve_forever()
 
 if __name__ == "__main__":
-    web.run_app(app, host="localhost", port=8080)
+    asyncio.run(main())
